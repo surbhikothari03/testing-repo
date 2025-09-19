@@ -1,0 +1,59 @@
+name: Deploy Node.js Docker App to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: List repo files (debug)
+        run: ls -la
+
+      - name: Copy all repo files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          password: ${{ secrets.EC2_PASSWORD }}   # 🔹 use password instead of key
+          source: "."
+          target: "/home/ubuntu/my-microservice"
+
+      - name: Deploy and restart Docker container on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          password: ${{ secrets.EC2_PASSWORD }}  # 🔹 use password instead of key
+          script: |
+            cd /home/ubuntu/my-microservice
+
+            echo "Confirming files in deployment directory:"
+            ls -la
+
+            echo "Building Docker image..."
+            docker build -t my-microservice .
+
+            echo "Stopping existing container if any..."
+            docker stop my-microservice || true
+
+            echo "Removing existing container if any..."
+            docker rm my-microservice || true
+
+            echo "Running new container..."
+            docker run -d --env-file .env -p 80:3000 --name my-microservice my-microservice
+
+            echo "Waiting for container to start..."
+            sleep 5
+
+            echo "Current container status:"
+            docker ps -a | grep my-microservice
+
+            echo "Container logs:"
+            docker logs my-microservice || echo 'No logs found yet'
