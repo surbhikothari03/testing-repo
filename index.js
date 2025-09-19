@@ -13,7 +13,7 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .catch(err => console.error('MongoDB connection error:', err));
 
 app.get('/', (req, res) => {
-  res.send('Task Completed Certificate');
+  res.send('Task Completed Certificate 2025');
 });
 
 app.listen(PORT, () => {
